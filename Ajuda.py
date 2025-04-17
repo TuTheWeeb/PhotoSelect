@@ -1,9 +1,9 @@
 import FreeSimpleGUI as sg
 
-def ajuda(font: tuple[str, int] = ('Arial', 18)):
+def ajuda(font: tuple[str, int] = ('Arial', 15)):
     layout = [
         [sg.Text(" 1. Rotação:", font=font)],
-        [sg.Text("Para rotacionar as imagens aperte 'r' para rotacionar somente a que está aberta ou 'R' para rotacionar todas as imagens menos as que já foram rotacionadas.", font=font)],
+        [sg.Text("Para rotacionar a imagens aperte 'r'.", font=font)],
         [sg.Text(" 2. Movimentação:", font=font)],
         [sg.Text("Para se movimentar entre as imagens, utilize as setas do teclado.", font=font)],
         [sg.Text(" 3. Seleção e Confirmação:", font=font)],

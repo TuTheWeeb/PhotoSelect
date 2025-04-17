@@ -1,6 +1,6 @@
 import FreeSimpleGUI as sg
 
-def salvar(font: tuple[str, int] = ('Arial', 20)):
+def salvar(font: tuple[str, int] = ('Arial', 15)):
     layout = [
         [sg.Text("As imagens foram movidas com sucesso!", font=font)],
         [sg.Push(), sg.Button("Fechar"), sg.Push()]

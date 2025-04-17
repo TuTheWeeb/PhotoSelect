@@ -49,9 +49,8 @@ class ImageCollector:
             if stop_event.is_set():
                 error("Terminou!")
                 break
-
+            
             if self.ended:
-                #print("Terminou!")
                 return
             with Pool(self.part_size) as pool:
                 new_images = pool.map(ImageCode, self.part)
@@ -75,18 +74,24 @@ class ImageCollector:
         return cpus
 
     def get(self, i: int = 0):
-        while self.current + i >= len(self.images) and len(self.images) != self.size:
-            sleep(0.1)
-            pass
-
-        if i < 0 and self.current == 0:
+        while len(self.images) == 0:
+            sleep(0.05)
+        
+        self.current += i
+        actual_size = len(self.images)
+        
+        if self.current < 0:
             error("Já está na primeira imagem")
-            return self.images[self.current]
-        elif self.current + i >= len(self.images):
+            self.current = 0
+            return self.images[0]
+        elif self.current >= self.size:
             error("Já está na ultima imagem")
+            self.current = self.size - 1
+            return self.images[-1]
+        elif self.current >= actual_size:
+            self.current = actual_size - 1
             return self.images[self.current]
         else:
-            self.current += i
             return self.images[self.current]
 
     def next(self) -> ImageCode:
@@ -123,10 +128,6 @@ class ImageCollector:
 
         return list(ret)
 
-    #def rotate_all(self):
-    #    self.Rotation = not self.Rotation
-    #    self.images = self.rotate_list(self.images)
-
     def prev(self):
         if self.current == 0:
             error("Já está na primeira imagem")
@@ -134,11 +135,16 @@ class ImageCollector:
         
         return self.get(-1)
     
+    def get_selected(self):
+        with ThreadPool(self.part_size) as pool:
+            return pool.map(lambda x: x.image if x.selected else "", self.images)
+        return [""]
+    
     def stop(self):
         self.ended = True
 
 
-def visualizar(images_path: str, font: tuple[str, int] = ('Arial', 20)) -> None:
+def visualizar(images_path: str, font: tuple[str, int] = ('Arial', 15)) -> None:
     
     size = 816
     collections = ImageCollector(images_path)
@@ -175,13 +181,27 @@ def visualizar(images_path: str, font: tuple[str, int] = ('Arial', 20)) -> None:
             window["-SELECTED-"].update(visible=img.selected)
 
         elif event == "Mover Imagens" or event == "Return:36" or event == "c":
-            copy_images(collections, ok_dir="Selecionadas")
+            copy_images(collections.get_selected(), ok_dir="Selecionadas")
             salvar()
             break
 
         elif event == "Rotacionar" or event == "r:27" or event == "r":
             collections.rotate()
             window["-IMAGE-"].update(data=collections.get().data)
+
+        elif event == "Up:38":
+            img: ImageCode = collections.get(5)
+            window["-NAME-"].update(img.name())
+            window["-IMAGE-"].update(data=img.data)
+            window["-SELECTED-"].update(visible=img.selected)
+            window["-IMAGE-NUMBER-"].update("Imagem: " + str(collections.current + 1) + "/" + str(imgs_size))
+
+        elif event == "Down:40":
+            img: ImageCode = collections.get(-5)
+            window["-NAME-"].update(img.name())
+            window["-IMAGE-"].update(data=img.data)
+            window["-SELECTED-"].update(visible=img.selected)
+            window["-IMAGE-NUMBER-"].update("Imagem: " + str(collections.current + 1) + "/" + str(imgs_size))
 
         elif event == "<" or event == "Left:113" or event == "Left:37":
             img: ImageCode = collections.prev()

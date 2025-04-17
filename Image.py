@@ -109,7 +109,8 @@ def mask_center(image, mask_radius_percentage=0.75, mask_value=0):
 def process_image(infile: str) -> tuple[str, float]:
     """Processes a single image to determine blurriness."""
     try:
-        image = cv2.imread(infile, cv2.IMREAD_GRAYSCALE)
+        image = np.fromfile(infile, dtype=np.uint8)
+        image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
         size = 720
         h, w = image.shape
         prop = w / h
@@ -187,7 +188,7 @@ def createFolders(path: str = "./", ok_dir: str = "ok/") -> None:
 def Blur(images: list[tuple[str, float]]) -> float:
     return sum([img[1] for img in images]) / len(images)
 
-def filt(img: tuple[str, float], mean_blur: float) -> str:
+def filtrar_imagem(img: tuple[str, float], mean_blur: float) -> str:
     if img[1] >= mean_blur:
         return img[0]
     return ""
@@ -205,7 +206,7 @@ def processALL(path: 'Path', div=2, single=False, focus_threshold: float = 0) ->
         mean_blur = Blur(variance_results)
         mean_blur += mean_blur * focus_threshold
         
-        res = map(lambda x: filt(x, mean_blur), variance_results)
+        res = map(lambda x: filtrar_imagem(x, mean_blur), variance_results)
 
         return True, copy_images(res)
     
@@ -226,7 +227,7 @@ def processALL(path: 'Path', div=2, single=False, focus_threshold: float = 0) ->
         
         mean_blur = Blur(variance_results)
         mean_blur += mean_blur * focus_threshold
-        res = pool.map(lambda x: filt(x, mean_blur), variance_results)
+        res = pool.map(lambda x: filtrar_imagem(x, mean_blur), variance_results)
         
-        return True, copy_images(res)
+        return True, move_images(res)
 
