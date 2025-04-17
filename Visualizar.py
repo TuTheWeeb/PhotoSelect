@@ -40,11 +40,11 @@ class ImageCollector:
     
     def get_part(self):
         try:
-            self.part = sorted(next(self.parts), key=infile_order)
+            self.part = next(self.parts) #sorted(next(self.parts), key=infile_order)
         except StopIteration:
             self.part = []
 
-    def load(self, a, stop_event):
+    def load(self, _, stop_event):
         while len(self.images) < self.size:
             if stop_event.is_set():
                 error("Terminou!")
@@ -167,6 +167,7 @@ def visualizar(images_path: str, font: tuple[str, int] = ('Arial', 20)) -> None:
         if event == sg.WIN_CLOSED:
             collections.stop()
             break
+        
         elif event == "Selecionar" or event == "s:39" or event == "s":
             img = collections.get()
             img.selected = not img.selected

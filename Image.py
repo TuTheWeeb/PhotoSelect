@@ -119,6 +119,7 @@ def process_image(infile: str) -> tuple[str, float]:
         laplacian = cv2.Laplacian(image, cv2.CV_64F)
         laplacian_masked_075 = mask_center(laplacian)
         laplacian_masked_025 = mask_center(laplacian, 0.25)
+        
         blur: float = float(laplacian.var())
         blur_masked_075: float = float(laplacian_masked_075.var())
         blur_masked_025: float = float(laplacian_masked_025.var())
