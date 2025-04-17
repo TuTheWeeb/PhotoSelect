@@ -4,16 +4,18 @@ from pathlib import Path
 from Visualizar import visualizar
 from collections.abc import Iterable
 import os
+from multiprocessing import freeze_support
+freeze_support()
 
 focus_threshold = 0
 blurred_dir = 'borradas'
 ok_dir = 'ok'
 norm_vector = 70.0
-font = ('Arial', 24)
+font = ('Arial', 18)
 def main_window():
     layout = [
         [sg.Text("Selecione uma pasta para visualizar ou processar:", font=font)],
-        [sg.Input(key="-FOLDER-"), sg.FolderBrowse()],
+        [sg.Push(), sg.Input(key="-FOLDER-"), sg.Push(), sg.FolderBrowse(target="-FOLDER-", button_text="Selecionar pasta")],
         [sg.Push(), sg.Button("Processar"), sg.Button("Visualizar Imagens"), sg.Push()]
     ]
 
@@ -33,6 +35,7 @@ def main_window():
         # Processa as imagens
         if event == "Processar":
             folder: str = str(values["-FOLDER-"])
+            print(folder)
             if os.path.exists(folder) is False:
                 error("Esta pasta não existe!")
             else:

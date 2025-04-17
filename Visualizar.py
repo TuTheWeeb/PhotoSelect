@@ -153,7 +153,7 @@ def visualizar(images_path: str, font: tuple[str, int] = ('Arial', 20)) -> None:
         [sg.Button("Rotacionar"), sg.Push(), sg.Button("Mover Imagens")]
     ]
 
-    window = sg.Window("PhotoSelect Imagens", layout, return_keyboard_events=True, use_default_focus=False)
+    window = sg.Window("PhotoSelect Imagens", layout, return_keyboard_events=True, use_default_focus=True)
 
     if window is None:
         return None
@@ -167,34 +167,34 @@ def visualizar(images_path: str, font: tuple[str, int] = ('Arial', 20)) -> None:
         if event == sg.WIN_CLOSED:
             collections.stop()
             break
-        elif event == "Selecionar" or event == "s:39":
+        elif event == "Selecionar" or event == "s:39" or event == "s":
             img = collections.get()
             img.selected = not img.selected
             collections.setter(img)
             window["-SELECTED-"].update(visible=img.selected)
 
-        elif event == "Mover Imagens" or event == "Return:36":
+        elif event == "Mover Imagens" or event == "Return:36" or event == "c":
             copy_images(collections, ok_dir="Selecionadas")
             salvar()
             break
 
-        elif event == "Rotacionar" or event == "r:27":
+        elif event == "Rotacionar" or event == "r:27" or event == "r":
             collections.rotate()
             window["-IMAGE-"].update(data=collections.get().data)
 
-        elif event == "<" or event == "Left:113":
+        elif event == "<" or event == "Left:113" or event == "Left:37":
             img: ImageCode = collections.prev()
             window["-NAME-"].update(img.name())
             window["-IMAGE-"].update(data=img.data)
             window["-SELECTED-"].update(visible=img.selected)
             window["-IMAGE-NUMBER-"].update("Imagem: " + str(collections.current + 1) + "/" + str(imgs_size))
-        elif event == ">" or event == "Right:114":
+        elif event == ">" or event == "Right:114" or event == "Right:39":
             img: ImageCode = collections.next()
             window["-NAME-"].update(img.name())
             window["-IMAGE-"].update(data=img.data)
             window["-SELECTED-"].update(visible=img.selected)
             window["-IMAGE-NUMBER-"].update("Imagem: " + str(collections.current + 1) + "/" + str(imgs_size))
-        elif event == 'h:43':
+        elif event == 'h:43' or event == "h":
             ajuda()
 
     window.close()

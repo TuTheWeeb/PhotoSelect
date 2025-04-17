@@ -1,6 +1,6 @@
 import FreeSimpleGUI as sg
 
-def error(msg: str):
+def error(msg: str, font=('Arial', 18)):
     layout = [
         [sg.Text(msg)],
         [sg.Push(), sg.Button("Fechar"), sg.Push()]

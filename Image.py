@@ -122,7 +122,7 @@ def process_image(infile: str) -> tuple[str, float]:
         blur: float = float(laplacian.var())
         blur_masked_075: float = float(laplacian_masked_075.var())
         blur_masked_025: float = float(laplacian_masked_025.var())
-        return infile, blur + blur_masked_075*1.5 + blur_masked_025*2.0
+        return infile, blur + blur_masked_075*2.0 + blur_masked_025*1.5
     except Exception as e:
         error(f"Erro processando {infile}: {e}")
         return "null", 0.0
