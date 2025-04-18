@@ -112,9 +112,9 @@ def process_image(infile: str) -> tuple[str, float]:
         image = np.fromfile(infile, dtype=np.uint8)
         image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
         size = 720
-        h, w = image.shape
+        w, h = image.shape
         prop = w / h
-        w, h = int(size*prop), size
+        w, h = size, int(size*prop)
         image = cv2.resize(image, (w, h))
 
         laplacian = cv2.Laplacian(image, cv2.CV_64F)

@@ -6,15 +6,12 @@ from Image import ImageCode, copy_images, rotacionar
 from Error import error
 from Ajuda import ajuda
 from Salvar import salvar
-from Sort import infile_order
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor as ThreadPool
 from collections.abc import Iterable
 from pathlib import Path
+from Utils import partition, infile_order
 
-def partition(lista, size):
-    for i in range(0 , len(lista), size):
-        yield lista[i : i+size]
 
 class ImageCollector:
     def __init__(self, path: str) -> None:

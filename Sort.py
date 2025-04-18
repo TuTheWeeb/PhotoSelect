@@ -1,22 +1,8 @@
 import FreeSimpleGUI as sg
 from pathlib import Path
 from Image import ImageCode
+from Utils import image_order
 
-def infile_order(infile: str, delim: str = "_") -> int:
-    path = Path(infile).stem
-    mat = delim
-    if path.find(mat) == -1:
-        mat = "_"
-    pos = path[path.rfind(mat)+1:]
-    return int(pos)
-
-def image_order(image: ImageCode, delim: str = "_") -> int:
-    path = Path(image.image).stem
-    mat = delim
-    if path.find(mat) == -1:
-        mat = "_"
-    pos = path[path.rfind(mat)+1:]
-    return int(pos)
 
 def sort(images: list[ImageCode], font: tuple[str, int] = ('Arial', 20)) -> list[ImageCode]:
     layout = [
@@ -41,7 +27,7 @@ def sort(images: list[ImageCode], font: tuple[str, int] = ('Arial', 20)) -> list
             delim: str = str(window["-DELIM-"])
             
 
-            images = sorted(images, key=order)
+            images = sorted(images, key=image_order)
             break
         elif event == "Não":
             break
