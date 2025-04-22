@@ -140,8 +140,6 @@ def mask_center(image, mask_radius_percentage=0.75, mask_value=0):
     radius = int(min(width, height) * mask_radius_percentage)
 
     mask = np.zeros_like(image)
-    #cv2.circle(mask, (center_x, center_y), radius, mask_value)
-    #mask = cv2.circle(mask, (center_x, center_y), radius, mask_value)
 
     masked_image = cv2.bitwise_and(image, cv2.bitwise_not(mask))
     masked_part = cv2.bitwise_and(mask, mask)
@@ -199,17 +197,6 @@ def file_manager(ok: Iterable[str], ok_dir: str = "ok/", tp: bool = False) -> st
         print(f"Error moving/copying {first} to {first_path}")
     with Pool() as pool:
         pool.map(file_operation, ok)
-    
-    #for image in ok:
-    #    if image == "":
-    #        continue
-    #    
-    #    path = Path(image).parent.parent / ok_dir
-    #    ret = str(path)
-    #    if tp is True:
-    #        shutil.move(image, path)
-    #    else:
-    #        shutil.copy(image, path)
     return ret
 
 def move_images(ok: Iterable[str], ok_dir: str = "ok/") -> str:
@@ -287,6 +274,7 @@ def similarity_dict(path: 'Path') -> dict[str, list[str]]:
             weights = np.arange(1, len(average)+1, 1)
             av = np.average(average, weights=weights)
             da = d[0] - av
+            placeholder.extend(imgs)
             if da > 0:
                 name = "Grupo " + str(cat+1)
                 ret[name] = placeholder
@@ -294,8 +282,6 @@ def similarity_dict(path: 'Path') -> dict[str, list[str]]:
                 average = []
                 placeholder = []
                 cat += 1
-            else:
-                placeholder.extend(imgs)
         
         return ret
 

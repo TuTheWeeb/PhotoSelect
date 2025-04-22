@@ -17,32 +17,30 @@ import json
 class ImageCollector:
     def __init__(self, path: str) -> None:
         self.path = Path(path)
-        if os.path.exists(self.path):
+        if os.path.exists(self.path) and os.path.exists(self.path / "similarity.json"):
             with open(self.path / "similarity.json", "r") as f:
                 self.categories = json.load(f)
             self.categories_name = sorted(self.categories.keys(), key=category_order)
-            total = os.listdir(self.path)
-            if True:
-                self.size = len(total) - 1
-                self.images: list[tuple[str, ImageCode]] = []
-                self.Rotation = False
-                self.ended = False
-                self.parts = self.get_parts()
-                self.expand()
-                self.current = 0
-                self.Rotation = True
-                self.ended = False
-            else:
-                error("Essas imagens não foram agrupadas!")
-                self.images_path = []
-                self.part = []
-                self.size = len(self.images_path)
-            
+            self.size = self.get_size()
+            self.images: list[tuple[str, ImageCode]] = []
+            self.Rotation = False
+            self.ended = False
+            self.parts = self.get_parts()
+            self.expand()
+            self.current = 0
+            self.Rotation = True
+            self.ended = False
         else:
             error("Essa pasta não existe!")
             self.images_path = []
             self.part = ("null", ["null"])
             self.size = len(self.images_path)
+
+    def get_size(self):
+        ret: int = 0
+        for i in self.categories:
+            ret += len(self.categories[i])
+        return ret
 
     def open_thread(self, category: tuple[str, list[str]]):
         imgs = category[1]
@@ -81,10 +79,9 @@ class ImageCollector:
                 self.images.sort(key=cat_img_order)
 
     def expand(self):
-        self.load()
-        #self.stop_event = threading.Event()
-        #self.thread = threading.Thread(target=self.load, args=(self, self.stop_event))
-        #self.thread.start()
+        self.stop_event = threading.Event()
+        self.thread = threading.Thread(target=self.load_thread, args=(self, self.stop_event))
+        self.thread.start()
             
 
     def get_cpus(self):
@@ -114,7 +111,7 @@ class ImageCollector:
         elif self.current >= self.size:
             error("Já está na ultima imagem")
             self.current = self.size - 1
-            return self.images[-1]
+            return self.images[self.current]
         elif self.current >= actual_size:
             self.current = actual_size - 1
             return self.images[self.current]
@@ -127,13 +124,11 @@ class ImageCollector:
     def check_cat(self):
         cat, img = self.get()
         cat1, img1 = self.get(1)
-        #self.get(-1)
         return cat == cat1
 
     def reverse_check_cat(self):
         cat, img = self.get()
         cat1, img1 = self.get(-1)
-        #self.get(1)
         return cat == cat1
 
     def next_cat(self) -> tuple[str, ImageCode]:
@@ -196,12 +191,11 @@ def visualizar(images_path: str, font: tuple[str, int] = ('Arial', 15)) -> None:
     size = 816
     collections = ImageCollector(images_path)
     path = Path(collections.get()[1].image).parent
-    imgs_size: int = len(os.listdir(path))
 
     layout = [
         [sg.Push(), sg.Text("Para ajuda aperte 'h'", font=font), sg.Push()],
         [sg.Push(), sg.Button("<"), sg.Button("Selecionar"), sg.Button(">"), sg.Push()],
-        [sg.Text("Imagem: " + str(collections.current + 1) + "/" + str(imgs_size), key="-IMAGE-NUMBER-", font=font), sg.Push(), sg.Text(collections.get()[1].name(), key="-NAME-", font=font), sg.Text(collections.get()[0], key="-CATEGORY-", font=font) ,sg.Push(), sg.Text("Confirmado", key="-SELECTED-", visible=False, font=font), sg.Push()],
+        [sg.Text("Imagem: " + str(collections.current + 1) + "/" + str(collections.size), key="-IMAGE-NUMBER-", font=font), sg.Push(), sg.Text(collections.get()[1].name(), key="-NAME-", font=font), sg.Text(collections.get()[0], key="-CATEGORY-", font=font) ,sg.Push(), sg.Text("Confirmado", key="-SELECTED-", visible=False, font=font), sg.Push()],
         [sg.Push(), sg.Image(data=collections.get()[1].data, key="-IMAGE-"), sg.Push()],
         [sg.Button("Rotacionar"), sg.Push(), sg.Button("Mover Imagens")]
     ]
@@ -242,7 +236,7 @@ def visualizar(images_path: str, font: tuple[str, int] = ('Arial', 15)) -> None:
             window["-CATEGORY-"].update(cat)
             window["-IMAGE-"].update(data=img.data)
             window["-SELECTED-"].update(visible=img.selected)
-            window["-IMAGE-NUMBER-"].update("Imagem: " + str(collections.current + 1) + "/" + str(imgs_size))
+            window["-IMAGE-NUMBER-"].update("Imagem: " + str(collections.current + 1) + "/" + str(collections.size))
 
         elif event == "Down:40" or event == "Down:116":
             cat, img = collections.prev_cat()
@@ -250,7 +244,7 @@ def visualizar(images_path: str, font: tuple[str, int] = ('Arial', 15)) -> None:
             window["-CATEGORY-"].update(cat)
             window["-IMAGE-"].update(data=img.data)
             window["-SELECTED-"].update(visible=img.selected)
-            window["-IMAGE-NUMBER-"].update("Imagem: " + str(collections.current + 1) + "/" + str(imgs_size))
+            window["-IMAGE-NUMBER-"].update("Imagem: " + str(collections.current + 1) + "/" + str(collections.size))
 
         elif event == "<" or event == "Left:113" or event == "Left:37":
             cat, img = collections.prev()
@@ -258,14 +252,14 @@ def visualizar(images_path: str, font: tuple[str, int] = ('Arial', 15)) -> None:
             window["-CATEGORY-"].update(cat)
             window["-IMAGE-"].update(data=img.data)
             window["-SELECTED-"].update(visible=img.selected)
-            window["-IMAGE-NUMBER-"].update("Imagem: " + str(collections.current + 1) + "/" + str(imgs_size))
+            window["-IMAGE-NUMBER-"].update("Imagem: " + str(collections.current + 1) + "/" + str(collections.size))
         elif event == ">" or event == "Right:114" or event == "Right:39":
             cat, img = collections.next()
             window["-NAME-"].update(img.name())
             window["-CATEGORY-"].update(cat)
             window["-IMAGE-"].update(data=img.data)
             window["-SELECTED-"].update(visible=img.selected)
-            window["-IMAGE-NUMBER-"].update("Imagem: " + str(collections.current + 1) + "/" + str(imgs_size))
+            window["-IMAGE-NUMBER-"].update("Imagem: " + str(collections.current + 1) + "/" + str(collections.size))
         elif event == 'h:43' or event == "h":
             ajuda()
 
