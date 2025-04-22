@@ -1,7 +1,6 @@
 import FreeSimpleGUI as sg
 from pathlib import Path
 from Image import ImageCode
-from Utils import image_order
 
 
 def sort(images: list[ImageCode], font: tuple[str, int] = ('Arial', 20)) -> list[ImageCode]:

@@ -3,7 +3,7 @@ import FreeSimpleGUI as sg
 import os
 import threading
 from time import sleep
-from Image import ImageCode, copy_images, rotacionar, partition
+from Image import ImageCode, copy_images, rotacionar, category_order, cat_img_order
 from Error import error
 from Ajuda import ajuda
 from Salvar import salvar
@@ -11,7 +11,6 @@ from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor as ThreadPool
 from collections.abc import Iterable
 from pathlib import Path
-from Utils import category_order, cat_img_order, infile_order
 import json
 
 
