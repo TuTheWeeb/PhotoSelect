@@ -9,7 +9,29 @@ from concurrent.futures import ThreadPoolExecutor as Pool
 from pathlib import Path
 from io import BytesIO
 from Error import error
+import imagehash
+import json
 
+def partition(lista):
+    first = []
+    second = []
+    mapper = iter(lista)
+    
+    while True:
+        # check for the end at the first
+        try:
+            first = next(mapper)
+        except StopIteration:
+            yield []
+            break
+        # check for the end at the second
+        try:
+            second = next(mapper)
+        except StopIteration:
+            yield [first]
+            break
+
+        yield [first, second]
 
 class ImageCode:
     def __init__(self, image: str = "null", blur: float = 0.0, size: int = 720):
@@ -29,6 +51,29 @@ class ImageCode:
 
     def name(self):
         return Path(self.image).stem
+
+def infile_order(infile: str, delim: str = "_") -> int:
+    path = Path(infile).stem
+    mat = delim
+    if path.find(mat) == -1:
+        mat = "_"
+    pos = path[path.rfind(mat)+1:]
+    return int(pos)
+
+def image_order(image: 'ImageCode', delim: str = "_") -> int:
+    path = Path(image.image).stem
+    mat = delim
+    if path.find(mat) == -1:
+        mat = "_"
+    pos = path[path.rfind(mat)+1:]
+    return int(pos)
+
+def category_order(name: str) -> int:
+    pos = name[name.rfind(" ")+1:]
+    return int(pos)
+
+def cat_img_order(img: tuple[str, ImageCode]) -> int:
+    return category_order(img[0])
 
 def conversion(image: ImageCode, size: int = 720) -> bytes:
     try:
@@ -95,7 +140,8 @@ def mask_center(image, mask_radius_percentage=0.75, mask_value=0):
     radius = int(min(width, height) * mask_radius_percentage)
 
     mask = np.zeros_like(image)
-    cv2.circle(mask, (center_x, center_y), radius, mask_value)
+    #cv2.circle(mask, (center_x, center_y), radius, mask_value)
+    #mask = cv2.circle(mask, (center_x, center_y), radius, mask_value)
 
     masked_image = cv2.bitwise_and(image, cv2.bitwise_not(mask))
     masked_part = cv2.bitwise_and(mask, mask)
@@ -129,22 +175,41 @@ def process_image(infile: str) -> tuple[str, float]:
         error(f"Erro processando {infile}: {e}")
         return "null", 0.0
 
-def Ok(path: str, dir: str):
-    return Path(path).parent / dir
+def file_operation(image_path: str, ok_dir: str = "ok/", tp: bool = False):
+    if image_path == "":
+        return
+    
+    path = Path(image_path).parent.parent / ok_dir
+
+    if tp is True:
+        shutil.move(image_path, path)
+    else:
+        shutil.copy(image_path, path)
 
 def file_manager(ok: Iterable[str], ok_dir: str = "ok/", tp: bool = False) -> str:
-    ret: str = ""
-    for image in ok:
-        if image == "":
-            continue
-        
-        path = Path(image).parent.parent / ok_dir
-        ret = str(path)
-
+    first = next(ok)
+    first_path = Path(first).parent.parent / ok_dir
+    ret: str = str(first_path)
+    try:
         if tp is True:
-            shutil.move(image, path)
+            shutil.move(first, first_path)
         else:
-            shutil.copy(image, path)
+            shutil.copy(first, first_path)
+    except:
+        print(f"Error moving/copying {first} to {first_path}")
+    with Pool() as pool:
+        pool.map(file_operation, ok)
+    
+    #for image in ok:
+    #    if image == "":
+    #        continue
+    #    
+    #    path = Path(image).parent.parent / ok_dir
+    #    ret = str(path)
+    #    if tp is True:
+    #        shutil.move(image, path)
+    #    else:
+    #        shutil.copy(image, path)
     return ret
 
 def move_images(ok: Iterable[str], ok_dir: str = "ok/") -> str:
@@ -171,11 +236,9 @@ def find_name(path: str) -> str:
 
     return path
 
-
 def find_path(path: str) -> str:
     py_path = Path(path)
     return str(py_path.parent)
-
 
 def createFolders(path: str = "./", ok_dir: str = "ok/") -> None:
     try:
@@ -193,7 +256,55 @@ def filtrar_imagem(img: tuple[str, float], mean_blur: float) -> str:
         return img[0]
     return ""
 
-def processALL(path: 'Path', div=2, single=False, focus_threshold: float = 0) -> tuple[bool, str]:
+def get_hash(path: str):
+    img = Image.open(path)
+    return imagehash.average_hash(img), path
+
+def subtract_diff(part: list[tuple[imagehash.ImageHash, str]]):
+    if len(part) > 1:
+        return part[0][0] - part[1][0], [part[0][1], part[1][1]]
+    elif len(part) == 1:
+        return 0, [part[0][1]]
+    else:
+        return 0, []
+
+def similarity_dict(path: 'Path') -> dict[str, list[str]]:
+    files = sorted(get_files(path), key=infile_order)
+    with Pool() as pool:
+        hashes = pool.map(get_hash, files)
+        parts = partition(hashes)
+        dist = list(pool.map(subtract_diff, parts))
+        ret: dict[str, list[str]] = dict()
+        cat = 0
+        placeholder = []
+        average = []
+        for i in range(len(dist)):
+            if len(dist[i]) == 0:
+                continue
+            d = dist[i]
+            imgs: list[str] = list(d[1])
+            average.append(d[0])
+            weights = np.arange(1, len(average)+1, 1)
+            av = np.average(average, weights=weights)
+            da = d[0] - av
+            if da > 0:
+                name = "Grupo " + str(cat+1)
+                ret[name] = placeholder
+                
+                average = []
+                placeholder = []
+                cat += 1
+            else:
+                placeholder.extend(imgs)
+        
+        return ret
+
+def write_similarity(path: 'Path'):
+    sim = similarity_dict(path)
+    with open(path / "similarity.json", "w") as f:
+        json.dump(sim, f)
+
+def processALL(path: 'Path', single=False, focus_threshold: float = 0) -> tuple[bool, str]:
     files = get_files(path)
     size = len(files)
 
@@ -207,8 +318,9 @@ def processALL(path: 'Path', div=2, single=False, focus_threshold: float = 0) ->
         mean_blur += mean_blur * focus_threshold
         
         res = map(lambda x: filtrar_imagem(x, mean_blur), variance_results)
-
-        return True, copy_images(res)
+        new_path = copy_images(res)
+        write_similarity(Path(new_path))
+        return True, new_path
     
     # get the number of cores
     processes = os.cpu_count()
@@ -228,6 +340,7 @@ def processALL(path: 'Path', div=2, single=False, focus_threshold: float = 0) ->
         mean_blur = Blur(variance_results)
         mean_blur += mean_blur * focus_threshold
         res = pool.map(lambda x: filtrar_imagem(x, mean_blur), variance_results)
-        
-        return True, move_images(res)
+        new_path = move_images(res)
+        write_similarity(Path(new_path))
+        return True, new_path
 
