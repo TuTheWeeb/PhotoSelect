@@ -3,7 +3,7 @@ import FreeSimpleGUI as sg
 def error(msg: str, font=('Arial', 15)):
     layout = [
         [sg.Text(msg)],
-        [sg.Push(), sg.Button("Fechar"), sg.Push()]
+        [sg.Push(), sg.OK(), sg.Push()]
     ]
 
     window = sg.Window("Erro", layout)
@@ -15,7 +15,7 @@ def error(msg: str, font=('Arial', 15)):
         event, _ = content
         if event == sg.WIN_CLOSED:
             break
-        elif event == "Fechar":
+        elif event == "OK":
             break
 
     window.close()

@@ -288,6 +288,8 @@ def similarity_dict(path: 'Path') -> dict[str, list[str]]:
         return ret
 
 def write_similarity(path: 'Path'):
+    if os.path.exists(path / "similarity.json"):
+        os.remove(path / "similarity.json")
     sim = similarity_dict(path)
     with open(path / "similarity.json", "w") as f:
         json.dump(sim, f)

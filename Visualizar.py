@@ -12,30 +12,36 @@ from concurrent.futures import ThreadPoolExecutor as ThreadPool
 from collections.abc import Iterable
 from pathlib import Path
 import json
+from Agrupar import agrupar
 
 
 class ImageCollector:
     def __init__(self, path: str) -> None:
         self.path = Path(path)
-        if os.path.exists(self.path) and os.path.exists(self.path / "similarity.json"):
-            with open(self.path / "similarity.json", "r") as f:
-                self.categories = json.load(f)
-            self.categories_name = sorted(self.categories.keys(), key=category_order)
-            self.size = self.get_size()
-            self.images: list[tuple[str, ImageCode]] = []
-            self.Rotation = False
-            self.ended = False
-            self.parts = self.get_parts()
-            self.current = 0
-            self.Rotation = True
-            self.update = False
-            self.expand()
+        if os.path.exists(self.path):
+            if os.path.exists(self.path / "similarity.json") is False:
+                error("As fotos nesta pasta não foram agrupadas, clique ok para inciar o agrupamento!")
+                agrupar(self.path)
+            self.startup()
+            
         else:
             error("Essa pasta não existe!")
             self.images_path = []
             self.part = ("null", ["null"])
             self.size = len(self.images_path)
 
+    def startup(self):
+        with open(self.path / "similarity.json", "r") as f:
+                self.categories = json.load(f)
+        self.categories_name = sorted(self.categories.keys(), key=category_order)
+        self.size = self.get_size()
+        self.images: list[tuple[str, ImageCode]] = []
+        self.Rotation = False
+        self.parts = self.get_parts()
+        self.current = 0
+        self.Rotation = True
+        self.update = False
+        self.expand()
     def get_size(self):
         ret: int = 0
         for i in self.categories:
@@ -55,7 +61,7 @@ class ImageCollector:
     def open(self, category: tuple[str, list[str]]):
         imgs = category[1]
         cat = category[0]
-    
+
         with ThreadPool() as pool:
             res = list(pool.map(ImageCode, imgs))
             res = self.rotate_list(res)
@@ -68,9 +74,7 @@ class ImageCollector:
             if stop_event.is_set():
                 error("Terminou!")
                 break
-            
-            if self.ended:
-                return
+
             with ThreadPool() as pool:
                 pool.map(self.open_thread, self.parts)
                 self.stop()
@@ -103,7 +107,7 @@ class ImageCollector:
 
     def get(self, i: int = 0):
         while len(self.images) == 0:
-            sleep(0.005)
+            sleep(0.5)
         
         self.current += i
         actual_size = len(self.images)
@@ -196,9 +200,6 @@ class ImageCollector:
         with ThreadPool() as pool:
             return pool.map(lambda x: x[1].image if x[1].selected else "", self.images)
         return [""]
-    
-    def stop(self):
-        self.ended = True
 
 
 def visualizar(images_path: str, font: tuple[str, int] = ('Arial', 15)) -> None:
@@ -226,7 +227,6 @@ def visualizar(images_path: str, font: tuple[str, int] = ('Arial', 15)) -> None:
 
         event, _ = content
         if event == sg.WIN_CLOSED:
-            collections.stop()
             break
 
         if event == "Selecionar" or event == "s:39" or event == "s":
