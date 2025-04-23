@@ -26,10 +26,10 @@ class ImageCollector:
             self.Rotation = False
             self.ended = False
             self.parts = self.get_parts()
-            self.expand()
             self.current = 0
             self.Rotation = True
-            self.ended = False
+            self.update = False
+            self.expand()
         else:
             error("Essa pasta não existe!")
             self.images_path = []
@@ -45,11 +45,12 @@ class ImageCollector:
     def open_thread(self, category: tuple[str, list[str]]):
         imgs = category[1]
         cat = category[0]
-    
         with ThreadPool() as pool:
             res = pool.map(ImageCode, imgs)
+            res = self.rotate_list(res)
             self.images += [(cat, img) for img in res]
             self.images.sort(key=cat_img_order)
+            self.update = True
 
     def open(self, category: tuple[str, list[str]]):
         imgs = category[1]
@@ -57,7 +58,10 @@ class ImageCollector:
     
         with ThreadPool() as pool:
             res = list(pool.map(ImageCode, imgs))
-            return [(cat, img) for img in res]
+            res = self.rotate_list(res)
+            self.images += [(cat, img) for img in res]
+            self.images.sort(key=cat_img_order)
+
 
     def load_thread(self, _, stop_event):
         while len(self.images) < self.size:
@@ -69,16 +73,16 @@ class ImageCollector:
                 return
             with ThreadPool() as pool:
                 pool.map(self.open_thread, self.parts)
+                self.stop()
+                break
 
     def load(self):
         while len(self.images) < self.size:
             with ThreadPool() as pool:
-                res = pool.map(self.open, self.parts)
-                for imgs in res:
-                    self.images += imgs
-                self.images.sort(key=cat_img_order)
+                pool.map(self.open, self.parts)
 
     def expand(self):
+        #self.load()
         self.stop_event = threading.Event()
         self.thread = threading.Thread(target=self.load_thread, args=(self, self.stop_event))
         self.thread.start()
@@ -99,7 +103,7 @@ class ImageCollector:
 
     def get(self, i: int = 0):
         while len(self.images) == 0:
-            sleep(0.05)
+            sleep(0.005)
         
         self.current += i
         actual_size = len(self.images)
@@ -108,13 +112,16 @@ class ImageCollector:
             error("Já está na primeira imagem")
             self.current = 0
             return self.images[0]
+
         elif self.current >= self.size:
             error("Já está na ultima imagem")
             self.current = self.size - 1
             return self.images[self.current]
+
         elif self.current >= actual_size:
             self.current = actual_size - 1
             return self.images[self.current]
+
         else:
             return self.images[self.current]
 
@@ -132,16 +139,22 @@ class ImageCollector:
         return cat == cat1
 
     def next_cat(self) -> tuple[str, ImageCode]:
-        for i in range(self.current, len(self.images)):
-            if self.check_cat():
-                return self.get()
+        actual = self.get()
+        while self.current < len(self.images) - 1:
+            temp = self.get(1)
+            if actual[0] != temp[0]:
+                return temp
+            
         return self.get()
     
     def prev_cat(self):
-        for i in range(self.current, len(self.images)):
-            if self.reverse_check_cat():
-                return self.get()
-        return self.get()
+        actual = self.get()
+        while self.current > 0:
+            temp = self.get(-1)
+            if actual[0] != temp[0]:
+                return temp
+
+        return actual
     
     def setter(self, image: tuple[str, ImageCode], i: int = -1) -> int:
         if i < 0:
@@ -165,11 +178,13 @@ class ImageCollector:
             img.rotation = self.Rotation, False
             rotacionar(img)
         return img
-    def rotate_list(self, imgs: list[tuple[str,ImageCode]] | Iterable[tuple[str, ImageCode]]):
+    
+    def rotate_list(self, imgs: Iterable[ImageCode]):
         ret = []
         with ThreadPool() as pool:
             ret = pool.map(self.check_rotation, imgs)
-        return list(ret)
+        return ret
+
     def prev(self):
         if self.current == 0:
             error("Já está na primeira imagem")
@@ -179,7 +194,7 @@ class ImageCollector:
     
     def get_selected(self):
         with ThreadPool() as pool:
-            return pool.map(lambda x: x.image if x.selected else "", self.images)
+            return pool.map(lambda x: x[1].image if x[1].selected else "", self.images)
         return [""]
     
     def stop(self):
@@ -187,15 +202,14 @@ class ImageCollector:
 
 
 def visualizar(images_path: str, font: tuple[str, int] = ('Arial', 15)) -> None:
-    
-    size = 816
+
     collections = ImageCollector(images_path)
-    path = Path(collections.get()[1].image).parent
 
     layout = [
         [sg.Push(), sg.Text("Para ajuda aperte 'h'", font=font), sg.Push()],
         [sg.Push(), sg.Button("<"), sg.Button("Selecionar"), sg.Button(">"), sg.Push()],
-        [sg.Text("Imagem: " + str(collections.current + 1) + "/" + str(collections.size), key="-IMAGE-NUMBER-", font=font), sg.Push(), sg.Text(collections.get()[1].name(), key="-NAME-", font=font), sg.Text(collections.get()[0], key="-CATEGORY-", font=font) ,sg.Push(), sg.Text("Confirmado", key="-SELECTED-", visible=False, font=font), sg.Push()],
+        [sg.Push(), sg.Text(collections.get()[1].name(), key="-NAME-", font=font), sg.Text(collections.get()[0], key="-CATEGORY-", font=font), sg.Push()],
+        [sg.Text("Imagem: " + str(collections.current + 1) + "/" + str(collections.size), key="-IMAGE-NUMBER-", font=font), sg.Push(), sg.Text("Confirmado", key="-SELECTED-", visible=False, font=font)],
         [sg.Push(), sg.Image(data=collections.get()[1].data, key="-IMAGE-"), sg.Push()],
         [sg.Button("Rotacionar"), sg.Push(), sg.Button("Mover Imagens")]
     ]
@@ -214,15 +228,15 @@ def visualizar(images_path: str, font: tuple[str, int] = ('Arial', 15)) -> None:
         if event == sg.WIN_CLOSED:
             collections.stop()
             break
-        
-        elif event == "Selecionar" or event == "s:39" or event == "s":
+
+        if event == "Selecionar" or event == "s:39" or event == "s":
             cat, img = collections.get()
             img.selected = not img.selected
             collections.setter((cat, img))
             window["-SELECTED-"].update(visible=img.selected)
 
         elif event == "Mover Imagens" or event == "Return:36" or event == "c":
-            copy_images(collections.get_selected(), ok_dir="Selecionadas")
+            copy_images(collections.get_selected(), ok_dir="Selecionadas/")
             salvar()
             break
 

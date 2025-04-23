@@ -60,7 +60,7 @@ def main_window():
 
 
 def main():
-    _ = sg.theme("DarkAmber")
+    _ = sg.theme("dark grey 9")
     main_window()
 
 

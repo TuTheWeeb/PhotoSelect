@@ -200,9 +200,11 @@ def file_manager(ok: Iterable[str], ok_dir: str = "ok/", tp: bool = False) -> st
     return ret
 
 def move_images(ok: Iterable[str], ok_dir: str = "ok/") -> str:
+    os.makedirs(ok_dir, exist_ok=True)
     return file_manager(ok, ok_dir, True)
 
 def copy_images(ok: Iterable[str], ok_dir: str = "ok/") -> str:
+    os.makedirs(ok_dir, exist_ok=True)
     return file_manager(ok, ok_dir, False)
 
 
