@@ -3,7 +3,7 @@ import FreeSimpleGUI as sg
 import os
 import threading
 from time import sleep
-from Image import ImageCode, copy_images, rotacionar, category_order, cat_img_order
+from Image import ImageCode, copy_images, rotacionar, category_order, cat_img_order, get_files
 from Error import error
 from Ajuda import ajuda
 from Salvar import salvar
@@ -18,6 +18,13 @@ from Agrupar import agrupar
 class ImageCollector:
     def __init__(self, path: str) -> None:
         self.path = Path(path)
+        self.images_path = get_files(self.path)
+
+        if len(self.images_path) == 0:
+            error("Nenhuma imagem encontrada nesta pasta!")
+            exit()
+
+
         if os.path.exists(self.path):
             if os.path.exists(self.path / "similarity.json") is False:
                 error("As fotos nesta pasta não foram agrupadas, clique ok para inciar o agrupamento!")
@@ -77,7 +84,6 @@ class ImageCollector:
 
             with ThreadPool() as pool:
                 pool.map(self.open_thread, self.parts)
-                self.stop()
                 break
 
     def load(self):
@@ -199,7 +205,6 @@ class ImageCollector:
     def get_selected(self):
         with ThreadPool() as pool:
             return pool.map(lambda x: x[1].image if x[1].selected else "", self.images)
-        return [""]
 
 
 def visualizar(images_path: str, font: tuple[str, int] = ('Arial', 15)) -> None:

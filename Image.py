@@ -58,7 +58,13 @@ def infile_order(infile: str, delim: str = "_") -> int:
     if path.find(mat) == -1:
         mat = "_"
     pos = path[path.rfind(mat)+1:]
-    return int(pos)
+    
+    try:
+        ret = int(pos)
+    except:
+        ret = 0
+
+    return ret
 
 def image_order(image: 'ImageCode', delim: str = "_") -> int:
     path = Path(image.image).stem
@@ -66,7 +72,12 @@ def image_order(image: 'ImageCode', delim: str = "_") -> int:
     if path.find(mat) == -1:
         mat = "_"
     pos = path[path.rfind(mat)+1:]
-    return int(pos)
+    try:
+        ret = int(pos)
+    except:
+        ret = 0
+
+    return ret
 
 def category_order(name: str) -> int:
     pos = name[name.rfind(" ")+1:]
@@ -214,17 +225,6 @@ def get_files(path: 'Path') -> list[str]:
 
     return [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.JPG') or f.endswith('.jpg') or f.endswith('.jpeg') or f.endswith('.png') or f.endswith('.PNG')]
 
-
-def find_name(path: str) -> str:
-    pt_direita = path.rfind("/")
-    pt_esquerda = path.rfind("\\")
-    if path.rfind("\\") > path.rfind("/"):
-        path = path[pt_esquerda+1:]
-    else:
-        path = path[pt_direita+1:]
-
-    return path
-
 def find_path(path: str) -> str:
     py_path = Path(path)
     return str(py_path.parent)
@@ -258,7 +258,13 @@ def subtract_diff(part: list[tuple[imagehash.ImageHash, str]]):
         return 0, []
 
 def similarity_dict(path: 'Path') -> dict[str, list[str]]:
-    files = sorted(get_files(path), key=infile_order)
+    files = get_files(path)
+    if len(files) == 0:
+        error("Essa pasta não contem imagens!")
+        exit()
+    files = sorted(files, key=infile_order)
+    if len(files) == 1:
+        return {"Grupo 1": files}
     with Pool() as pool:
         hashes = pool.map(get_hash, files)
         parts = partition(hashes)
@@ -268,7 +274,7 @@ def similarity_dict(path: 'Path') -> dict[str, list[str]]:
         placeholder = []
         average = []
         for i in range(len(dist)):
-            if len(dist[i]) == 0:
+            if len(dist[i]) < 1:
                 continue
             d = dist[i]
             imgs: list[str] = list(d[1])
